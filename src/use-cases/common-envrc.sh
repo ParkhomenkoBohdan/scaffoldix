@@ -108,8 +108,13 @@ if [ -n "$REGISTRY_DATA" ]; then
 
   SSH_KEY_PATH="${PROJECT_DIR}/.ssh/${SSH_KEY_TYPE}"
   if [ -f "$SSH_KEY_PATH" ]; then
-    export GIT_SSH_COMMAND="ssh -i ${SSH_KEY_PATH}"
-    print_status "Using SSH key from registry: ${SSH_KEY_PATH}"
+  if command -v ssh-add >/dev/null; then
+    ssh-add -D
+    ssh-add "$SSH_KEY_PATH"
+    print_status "ssh-agent сброшен и загружен ключ: ${SSH_KEY_PATH}"
+  fi
+    export GIT_SSH_COMMAND="ssh -i ${SSH_KEY_PATH} -o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
+    print_status "GIT_SSH_COMMAND установлен для ключа из реестра"
   else
     unset GIT_SSH_COMMAND
     print_warning "SSH key from registry not found: ${SSH_KEY_PATH}"
@@ -138,8 +143,13 @@ else
       fi
     done
     if [ -n "$KEY_FOUND" ]; then
-      export GIT_SSH_COMMAND="ssh -i ${KEY_FOUND}"
-      print_status "Using local SSH key: ${KEY_FOUND}"
+      if command -v ssh-add >/dev/null; then
+        ssh-add -D
+        ssh-add "$KEY_FOUND"
+        print_status "ssh-agent сброшен и загружен локальный ключ: ${KEY_FOUND}"
+      fi
+      export GIT_SSH_COMMAND="ssh -i ${KEY_FOUND} -o IdentitiesOnly=yes -o PreferredAuthentications=publickey"
+      print_status "GIT_SSH_COMMAND установлен для локального ключа"
     else
       unset GIT_SSH_COMMAND
       print_warning "ssh folder exists but key not found. Using global SSH."
